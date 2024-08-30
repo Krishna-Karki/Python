@@ -3,11 +3,16 @@ import webbrowser
 import pyttsx3
 
 recognizer = sr.Recognizer()
-ttsx = pyttsx3.init()
+engine = pyttsx3.init()
 
 def speak(text):
+    engine.say(text)
+    engine.runAndWait()
 
-if _name_ == "_main_":
+
+
+if __name__ == "__main__":
+    speak("Initializing Jarvis....")
 
 
 
