@@ -3,11 +3,44 @@ import webbrowser
 import pyttsx3
 import musiclibrary
 import requests
+import openai
+import os
 
 # Initialize necessary components
 recognizer = sr.Recognizer()
 engine = pyttsx3.init()
 newsapi = "5a6b18e78afe4338839cf842ea491879"  # Ensure your API key is handled securely
+
+# Securely load OpenAI API key from environment variable
+openai_api_key = os.getenv("OPENAI_API_KEY")
+
+if not openai_api_key:
+    raise ValueError("Please set your OpenAI API key in the environment variable 'OPENAI_API_KEY'.")
+
+# Initialize OpenAI client with the API key
+openai.api_key = openai_api_key
+
+def aiProcess(command):
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": "You are a virtual assistant named Jarvis skilled in general tasks like Alexa and Google Cloud."},
+                {"role": "user", "content": command}
+            ]
+        )
+        return response['choices'][0]['message']['content']
+    except openai.error.RateLimitError:
+        return "Rate limit exceeded. Please try again later."
+    except openai.error.APIError:
+        return "API error occurred. Please try again later."
+    except openai.error.AuthenticationError:
+        return "Authentication error. Please check your API key."
+    except openai.error.InvalidRequestError as e:
+        return f"Invalid request: {e}"
+    except Exception as e:
+        print(f"Error: {e}")
+        return f"Error communicating with OpenAI: {e}"
 
 def speak(text):
     engine.say(text)
@@ -39,7 +72,13 @@ def processCommand(c):
             for article in articles:
                 speak(article['title'])
         else:
-            speak("Sorry, I couldn't fetch the news right now.")
+            # Let OpenAI handle the request
+            output = aiProcess(c)
+            speak(output)
+    else:
+        # Process unknown commands via OpenAI
+        output = aiProcess(c)
+        speak(output)
 
 def voice_mode():
     speak("Voice command mode activated.")
@@ -76,6 +115,9 @@ def text_mode():
     speak("Text command mode activated.")
     while True:
         command = input("Enter your command: ").strip()
+        if command.lower() == "exit":
+            print("Exiting text mode.")
+            break
         processCommand(command)
 
 if __name__ == "__main__":
